@@ -1,0 +1,14 @@
+{
+    "files.associations": {
+        "tfhe_io.h": "c",
+        "tfhe.h": "c",
+        "ostream": "c",
+        "functional": "c",
+        "random": "c",
+        "math.h": "c",
+        "polynomials.h": "c",
+        "stdio.h": "c",
+        "new": "cpp",
+        "iostream": "cpp"
+    }
+}
