@@ -17,24 +17,24 @@ int32_t main(int32_t argc, char **argv) {
     cout << "lets start" << endl;
 
     // parameter source: https://github.com/zama-ai/tfhe-rs/blob/main/tfhe/src/shortint/parameters/parameters_wopbs_message_carry.rs
-    // i chose: WOPBS_PARAM_MESSAGE_3_CARRY_3_KS_PBS. The authors claim its 123 to 128 bit secure.
+    // i chose: MESSAGE_3_CARRY_4. The authors claim its 123 to 128 bit secure.
     // means: 3 message-bits, 3 carry-bits = mult of two 3-bit values is possible
-    const int32_t lwe_dimension = 873;
-    const int32_t glwe_dimension = 1; //< number of polynomials in the mask // mask = A. Only needed for GLWE
-    const int32_t polynomial_size = 2048; //< a power of 2: degree of the polynomials // each coefficient is one message in tlwe
-    const double lwe_noise_distribution_stdev = 0.0000006428797112843789;
-    const double glwe_noise_distribution = 0.00000000000000029403601535432533;
-    const int32_t pbs_base_log = 9; // pbs = programmable bootstrapping
-    const int32_t pbs_level = 4;
-    const int32_t ks_level = 1; // key switch
-    const int32_t ks_base_log = 10;
-    //const int32_t pfks_level = 4; // public functional key switch
-    //const int32_t pfks_base_log = 9;
-    //const int32_t pfks_noise_distribution_mu = 0.00000000000000029403601535432533;
-    const int32_t cbs_level = 3; // circuit bootstrapping --> macht Lwe zu gsw
-    const int32_t cbs_base_log = 5;
+    const int32_t lwe_dimension = 481;
+    const int32_t glwe_dimension = 2; //< number of polynomials in the mask // mask = A. Only needed for GLWE
+    const int32_t polynomial_size = 1024; //< a power of 2: degree of the polynomials // each coefficient is one message in tlwe
+    const double lwe_noise_distribution_stdev = 0.00061200133780220371345;
+    const double glwe_noise_distribution = 0.00000000000000022148688116005568513645324585951;
+    const int32_t pbs_base_log = 11; // pbs = programmable bootstrapping
+    const int32_t pbs_level = 3;
+    const int32_t ks_level = 9; // key switch
+    const int32_t ks_base_log = 1;
+    //const int32_t pfks_level = 3; // public functional key switch
+    //const int32_t pfks_base_log = 11;
+    //const int32_t pfks_noise_distribution_mu = 0.00000000000000022148688116005568513645324585951;
+    const int32_t cbs_level = 5; // circuit bootstrapping --> macht Lwe zu gsw
+    const int32_t cbs_base_log = 4;
     const int32_t message_modulus = 8; //number of possible message values: 0 to 7
-    const int32_t carry_modulus = 8;
+    const int32_t carry_modulus = 16;
 
     const double alpha_min = 0.0;
     const double alpha = lwe_noise_distribution_stdev; 
@@ -217,8 +217,8 @@ int32_t main(int32_t argc, char **argv) {
     }
 
     
-    //delete_TLweSample(cipher0_tlwe); //segmentation fault - WHY?
-    //delete_LweSample(cipher_lwe); //segmentation fault - WHY?
+    delete_TLweSample(cipher0_tlwe); //segmentation fault if mult was used - WHY?
+    delete_LweSample(cipher_lwe); //segmentation fault if mult was used - WHY?
 
     delete_TGswSampleFFT(cipher1_tgsw_fft);
     delete_TLweSampleFFT(cipher1_tlwe_fft);

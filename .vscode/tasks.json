@@ -4,7 +4,7 @@
         {
             "label": "Build & run",
             "type": "shell",
-            "command": "g++ testground_v2.cpp -o test.out -L/usr/local/lib -ltfhe-spqlios-fma -g",
+            "command": "g++ profiling_testcode.cpp tfhe-codebase/*.cpp -o test.out tfhe-codebase/fft-model-of-x8664-avx.o tfhe-codebase/fft-x8664-avx-aux.o -I tfhe-codebase/headers/ -g -O0",
             "problemMatcher":"$gcc",
             "presentation": {
                 "echo": false,

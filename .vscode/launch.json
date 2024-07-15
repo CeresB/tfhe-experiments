@@ -8,7 +8,7 @@
             "name": "MYlaunch Debug C++",
             "type": "cppdbg",
             "request": "launch",
-            "additionalSOLibSearchPath": "/usr/local/lib/**",
+            //"additionalSOLibSearchPath": "/usr/local/lib/**",
             "program": "${workspaceRoot}/test.out",
             "cwd": "${workspaceRoot}",
             //"justMyCode": false,
