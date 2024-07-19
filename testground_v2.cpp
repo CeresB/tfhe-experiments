@@ -77,8 +77,6 @@ int32_t main(int32_t argc, char **argv) {
     TGswSample *cipher_tgsw = new_TGswSample(tgsw_params); // intermediate value
     // others
     LweBootstrappingKey *bootkey = new_LweBootstrappingKey(ks_level, ks_basebit, lwe_params, tgsw_params);
-    TLweSampleFFT *cipher1_tlwe_fft = new_TLweSampleFFT(tlwe_params);
-    TGswSampleFFT *cipher1_tgsw_fft = new_TGswSampleFFT(tgsw_params);
 
     // key generation
     lweKeyGen(lwe_key);
@@ -130,17 +128,11 @@ int32_t main(int32_t argc, char **argv) {
         tGswClear(cipher0_tgsw, tgsw_params);
         tGswClear(cipher1_tgsw, tgsw_params);
         tGswClear(cipher_tgsw, tgsw_params);
-        tGswSymEncrypt(cipher0_tgsw, p_polym, alpha, tgsw_key); // Question: why must it be an int polynomial and not a toruspolynomial like for tlwe?
+
+        tGswTLweDecompH(p_polym, cipher0_tlwe, tgsw_params); // converts tlwe to intpolynomial
+        tGswSymEncrypt(cipher0_tgsw, p_polym, alpha, tgsw_key);
+        tGswTLweDecompH(p_polym, cipher1_tlwe, tgsw_params); // converts tlwe to intpolynomial
         tGswSymEncrypt(cipher1_tgsw, p_polym, alpha, tgsw_key);
-        
-        //tLweToFFTConvert(cipher1_tlwe_fft, cipher1_tlwe, tgsw_params->tlwe_params);
-        //cipher1_tgsw_fft = new TGswSampleFFT(tgsw_params, cipher1_tlwe_fft); // throws segmentation fault errors later
-        // behavoir even occurs when untouched sample is used:
-        // TLweSampleFFT *test_tlwe_fft = new_TLweSampleFFT(tgsw_params->tlwe_params);
-        // TLweSample *test_tlwe = new_TLweSample(tgsw_params->tlwe_params);
-        // tLweToFFTConvert(test_tlwe_fft, test_tlwe, tgsw_params->tlwe_params);
-        // cipher1_tgsw_fft = new TGswSampleFFT(tgsw_params, test_tlwe_fft); // throws segmentation fault errors later
-        tGswToFFTConvert(cipher1_tgsw_fft, cipher1_tgsw, tgsw_params); // throws no error but results are incorrect
 
         op_id = 4;
 
@@ -172,20 +164,10 @@ int32_t main(int32_t argc, char **argv) {
             case 4:                
                 // the external product IS the multiplication of two ciphertexts
                 // HELP: results are incorrect!
-                tGswFFTExternMulToTLwe(cipher_tlwe, cipher1_tgsw_fft, tgsw_params);
-                //tGswExternProduct(cipher_tlwe, cipher1_tgsw, cipher0_tlwe, tgsw_params); // same issue
-
-                // bootstrap and decrypt first sample
-                // convert tlwe to lwe
-
-                // HELP after tLweExtractLweSampleIndex, cipher0_tlwe AND cipher_lwe cannot be deleted or cleared anymore for some reason
-                // cipher0_tlwe is the next thing initialized after cipher_lwe --> so it must have to do with memory out of bound
-                //tLweExtractLweSampleIndex(cipher_lwe, cipher_tlwe, 0, lwe_params, tlwe_params);
-                //delete_LweSample(cipher_lwe); // segmentation fault
-                //delete_TLweSample(cipher0_tlwe); // segmentation fault
+                tGswExternProduct(cipher_tlwe, cipher1_tgsw, cipher0_tlwe, tgsw_params);
 
                 // bootstrap lwe sample
-                //tfhe_bootstrap(cipher_lwe, bootkey, 1, cipher_lwe); //unsure about the parameters
+                //tfhe_bootstrap(cipher_lwe, bootkey, 1, cipher_lwe); //this is only binary bootstrapping
                 
                 plaintext_result = message_0 * message_1;
                 break;
@@ -210,18 +192,15 @@ int32_t main(int32_t argc, char **argv) {
         tLweSymDecrypt(mu, cipher_tlwe, tlwe_key, message_modulus);
         dec_num = modSwitchFromTorus32(mu->coefsT[0], message_modulus);
         cout << "TLWE: (" << message_0 << op_names[op_id] << message_1 << ") mod " << message_modulus << " result " << dec_num << " and should be " << muInt << endl;
-        // no need to decrypt tgsw --> its multiplication result is lwe anyway
-        
+        // no need to decrypt tgsw --> its multiplication result is tlwe/lwe anyway        
         cout << "----------------------" << endl;
         //cout << "cycles needed for operation: " << cyc << endl;
     }
 
     
-    delete_TLweSample(cipher0_tlwe); //segmentation fault if mult was used - WHY?
-    delete_LweSample(cipher_lwe); //segmentation fault if mult was used - WHY?
+    delete_TLweSample(cipher0_tlwe);
+    delete_LweSample(cipher_lwe);
 
-    delete_TGswSampleFFT(cipher1_tgsw_fft);
-    delete_TLweSampleFFT(cipher1_tlwe_fft);
     delete_LweBootstrappingKey(bootkey);
 
     delete_TGswSample(cipher_tgsw);

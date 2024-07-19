@@ -34,7 +34,7 @@ using namespace std;
 
 
 int32_t main(int32_t argc, char **argv) {
-    cout << "lets start" << endl;
+    cout << "Running code" << endl;
 
     // parameter source: https://github.com/zama-ai/tfhe-rs/blob/main/tfhe/src/shortint/parameters/parameters_wopbs_message_carry.rs
     // i chose: MESSAGE_3_CARRY_4. The authors claim its 123 to 128 bit secure.
@@ -81,6 +81,7 @@ int32_t main(int32_t argc, char **argv) {
     TorusPolynomial *mu1 = new_TorusPolynomial(polynomial_size);
     TorusPolynomial *mu = new_TorusPolynomial(polynomial_size); // intermediate value
     IntPolynomial *p_polym = new_IntPolynomial(polynomial_size);
+    IntPolynomial *p_temp = new_IntPolynomial(polynomial_size);
     // ciphertext placeholders
     LweSample *cipher0_lwe = new_LweSample(lwe_params);
     LweSample *cipher1_lwe = new_LweSample(lwe_params);
@@ -88,6 +89,7 @@ int32_t main(int32_t argc, char **argv) {
     TLweSample *cipher0_tlwe = new_TLweSample(tlwe_params);
     TLweSample *cipher1_tlwe = new_TLweSample(tlwe_params);
     TLweSample *cipher_tlwe = new_TLweSample(tlwe_params); // intermediate value
+    TGswSample *cipher0_tgsw = new_TGswSample(tgsw_params);
 
     // key generation
     lweKeyGen(lwe_key);
@@ -103,7 +105,7 @@ int32_t main(int32_t argc, char **argv) {
     cstart = clock();
 
 
-    for (int32_t h = 0; h < 800; h++) {
+    for (int32_t h = 0; h < 8; h++) {
 
         // msg generation lwe
         message_0 = msg0_arr[h%8];
@@ -131,10 +133,18 @@ int32_t main(int32_t argc, char **argv) {
         tLweClear(cipher_tlwe, tlwe_params);
         tLweSymEncrypt(cipher0_tlwe, mu0, alpha, tlwe_key);
         tLweSymEncrypt(cipher1_tlwe, mu1, alpha, tlwe_key);
+        // tgsw encryption
+        tGswClear(cipher0_tgsw, tgsw_params);
 
-        for(int32_t j=0; j<1000; j++){
-            op_id = j % 4;
-            lweCopy(cipher_lwe, cipher0_lwe, lwe_params);
+        // does not work: segmentation fault during decomposition
+        // tGswTLweDecompH(p_temp, cipher0_tlwe, tgsw_params); // converts tlwe to intpolynomial
+        // tGswSymEncrypt(cipher0_tgsw, p_temp, alpha, tgsw_key);
+
+        //works
+        tGswEncryptZero(cipher0_tgsw, alpha, tgsw_key);
+
+        for(int32_t j=0; j<100; j++){
+            op_id = j % 5;
             tLweCopy(cipher_tlwe, cipher0_tlwe, tlwe_params);
 
             switch(op_id) {
@@ -149,11 +159,15 @@ int32_t main(int32_t argc, char **argv) {
                     break;
                 case 3:
                     tLweSubMulTo(cipher_tlwe, p, cipher1_tlwe, tlwe_params);
-                    break;            
+                    break;
+                case 4:
+                    tGswExternProduct(cipher_tlwe, cipher0_tgsw, cipher1_tlwe, tgsw_params);
+                    break;
                 default:
                     break;
             }
 
+            // lweCopy(cipher_lwe, cipher0_lwe, lwe_params);
             // switch(op_id) {
             //     case 0:
             //         lweAddTo(cipher_lwe, cipher1_lwe, lwe_params);
@@ -185,7 +199,7 @@ int32_t main(int32_t argc, char **argv) {
     cout << "----------------------" << endl;
     cend = clock();
     int32_t cyc = cend - cstart;
-    cout << "cycles needed for operation: " << cyc << endl;
+    cout << "cycles needed for operation(s): " << cyc << endl;
 
     
     delete_TLweSample(cipher0_tlwe);
@@ -195,6 +209,7 @@ int32_t main(int32_t argc, char **argv) {
     delete_LweSample(cipher1_lwe);
     delete_LweSample(cipher0_lwe);
     delete_IntPolynomial(p_polym);
+    delete_IntPolynomial(p_temp);
     delete_TorusPolynomial(mu);
     delete_TorusPolynomial(mu1);
     delete_TorusPolynomial(mu0);
