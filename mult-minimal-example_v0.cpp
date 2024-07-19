@@ -45,35 +45,65 @@ int32_t main(int32_t argc, char **argv) {
     TGswParams *tgsw_params = new_TGswParams(decomposition_length, decomposition_Bgbit, tlwe_params);
     TLweKey *tlwe_key = new_TLweKey(tlwe_params);
     TGswKey *tgsw_key = new_TGswKey(tgsw_params);
+
     // key generation
     tLweKeyGen(tlwe_key);
-    tGswKeyGen(tgsw_key);    
+    tGswKeyGen(tgsw_key);
+    // msg generation
+    int32_t message_0 = 0 % message_modulus;
+    int32_t message_1 = 0 % message_modulus;
+    int32_t msg0_torus = modSwitchToTorus32(message_0, message_modulus);
+    int32_t msg1_torus = modSwitchToTorus32(message_1, message_modulus);
+    int32_t zero_torus = modSwitchToTorus32(0, message_modulus);
+    TorusPolynomial *p_mult_plaintext_result = new_TorusPolynomial(polynomial_size);
+    TorusPolynomial *msg0_polym = new_TorusPolynomial(polynomial_size);
+    IntPolynomial *p_polym = new_IntPolynomial(polynomial_size);
+    msg0_polym->coefsT[0] = msg0_torus;
+    p_polym->coefs[0] = message_1;
+    for (int32_t i = 1; i < msg0_polym->N; ++i) { 
+        msg0_polym->coefsT[i] = zero_torus;
+        p_polym->coefs[i] = 0;
+    }
     // tlwe encryption
+    TLweSample *msg0_tlwe_cipher = new_TLweSample(tlwe_params);
     TLweSample *result = new_TLweSample(tlwe_params);
-    TLweSample *zero_tlwe_cipher = new_TLweSample(tlwe_params);
-    tLweSymEncryptZero(zero_tlwe_cipher, alpha, tlwe_key);
+    tLweSymEncryptZero(msg0_tlwe_cipher, alpha, tlwe_key);
+    //tLweSymEncrypt(msg0_tlwe_cipher, msg0_polym, alpha, tlwe_key);
     // tgsw encryption
-    TGswSample *zero_tgsw_cipher = new_TGswSample(tgsw_params);
-    tGswEncryptZero(zero_tgsw_cipher, alpha, tgsw_key);
+    TGswSample *p_poly_tgsw = new_TGswSample(tgsw_params);
+    tGswEncryptZero(p_poly_tgsw, alpha, tgsw_key);
+    //tGswSymEncrypt(p_poly_tgsw, p_polym, alpha, tgsw_key);
+    // tgsw fft conversion
+    TGswSampleFFT *p_poly_tgsw_fft = new_TGswSampleFFT(tgsw_params);
+    tGswToFFTConvert(p_poly_tgsw_fft, p_poly_tgsw, tgsw_params);
 
     // mult operation
-    tGswExternProduct(result, zero_tgsw_cipher, zero_tlwe_cipher, tgsw_params);
+    tGswExternProduct(result, p_poly_tgsw, msg0_tlwe_cipher, tgsw_params);
 
-    // decrypt a few tlwe coefficients
+    // same result with ExternalMul
+    //tGswFFTExternMulToTLwe(msg0_tlwe_cipher, p_poly_tgsw_fft, tgsw_params);
+    //tLweCopy(result, msg0_tlwe_cipher, tlwe_params);
+    
+    torusPolynomialMultFFT(p_mult_plaintext_result, p_polym, msg0_polym);        
+
+    // decrypt a few tlwe samples
     int32_t dec_num = 0; // temp decryption value
     TorusPolynomial *dec_mu = new_TorusPolynomial(polynomial_size);
     tLweSymDecrypt(dec_mu, result, tlwe_key, message_modulus);
     for(int32_t i=0; i<10; i++){
         dec_num = modSwitchFromTorus32(dec_mu->coefsT[i], message_modulus);
-        // we multiplied with 0 so all coefficients of the multiplication result should be 0 as well
-        cout << "TLWE: (" << 0 << " * " << 0 << ") mod " << message_modulus << " result " << dec_num << " and should be " << 0 << endl;
+        cout << "TLWE: (" << modSwitchFromTorus32(msg0_polym->coefsT[i], message_modulus) << " * " << p_polym->coefs[i] << ") mod " << message_modulus << " result " << dec_num << " and should be " << modSwitchFromTorus32(p_mult_plaintext_result->coefsT[i], message_modulus) << endl;
     }
     cout << "----------------------" << endl;
 
     
     delete_TLweSample(result);
-    delete_TLweSample(zero_tlwe_cipher);
-    delete_TGswSample(zero_tgsw_cipher);
+    delete_TLweSample(msg0_tlwe_cipher);
+    delete_TGswSampleFFT(p_poly_tgsw_fft);
+    delete_TGswSample(p_poly_tgsw);
+    delete_IntPolynomial(p_polym);
+    delete_TorusPolynomial(p_mult_plaintext_result);
+    delete_TorusPolynomial(msg0_polym);
     delete_TorusPolynomial(dec_mu);
     delete_TGswKey(tgsw_key);
     delete_TLweKey(tlwe_key);
