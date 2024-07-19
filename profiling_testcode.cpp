@@ -132,44 +132,44 @@ int32_t main(int32_t argc, char **argv) {
         tLweSymEncrypt(cipher0_tlwe, mu0, alpha, tlwe_key);
         tLweSymEncrypt(cipher1_tlwe, mu1, alpha, tlwe_key);
 
-        for(int32_t j=0; j<10000; j++){
+        for(int32_t j=0; j<1000; j++){
             op_id = j % 4;
             lweCopy(cipher_lwe, cipher0_lwe, lwe_params);
-            // tLweCopy(cipher_tlwe, cipher0_tlwe, tlwe_params);
-
-            // switch(op_id) {
-            //     case 0:
-            //         tLweAddTo(cipher_tlwe, cipher1_tlwe, tlwe_params);
-            //         break;
-            //     case 1:
-            //         tLweSubTo(cipher_tlwe, cipher1_tlwe, tlwe_params);
-            //         break;
-            //     case 2:
-            //         tLweAddMulTo(cipher_tlwe, p, cipher1_tlwe, tlwe_params);
-            //         break;
-            //     case 3:
-            //         tLweSubMulTo(cipher_tlwe, p, cipher1_tlwe, tlwe_params);
-            //         break;            
-            //     default:
-            //         break;
-            // }
+            tLweCopy(cipher_tlwe, cipher0_tlwe, tlwe_params);
 
             switch(op_id) {
                 case 0:
-                    lweAddTo(cipher_lwe, cipher1_lwe, lwe_params);
+                    tLweAddTo(cipher_tlwe, cipher1_tlwe, tlwe_params);
                     break;
                 case 1:
-                    lweSubTo(cipher_lwe, cipher1_lwe, lwe_params);
+                    tLweSubTo(cipher_tlwe, cipher1_tlwe, tlwe_params);
                     break;
                 case 2:
-                    lweAddMulTo(cipher_lwe, p, cipher1_lwe, lwe_params);
+                    tLweAddMulTo(cipher_tlwe, p, cipher1_tlwe, tlwe_params);
                     break;
                 case 3:
-                    lweSubMulTo(cipher_lwe, p, cipher1_lwe, lwe_params);
+                    tLweSubMulTo(cipher_tlwe, p, cipher1_tlwe, tlwe_params);
                     break;            
                 default:
                     break;
             }
+
+            // switch(op_id) {
+            //     case 0:
+            //         lweAddTo(cipher_lwe, cipher1_lwe, lwe_params);
+            //         break;
+            //     case 1:
+            //         lweSubTo(cipher_lwe, cipher1_lwe, lwe_params);
+            //         break;
+            //     case 2:
+            //         lweAddMulTo(cipher_lwe, p, cipher1_lwe, lwe_params);
+            //         break;
+            //     case 3:
+            //         lweSubMulTo(cipher_lwe, p, cipher1_lwe, lwe_params);
+            //         break;            
+            //     default:
+            //         break;
+            // }
         }
     }
 
